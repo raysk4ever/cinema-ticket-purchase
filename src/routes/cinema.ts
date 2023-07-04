@@ -45,3 +45,5 @@ router.post('/cinemas/:cinemaId/purchase-consecutive', async (req: Request, res:
     res.status(500).json({ error: 'Failed to purchase consecutive seats' });
   }
 });
+
+export default router;
