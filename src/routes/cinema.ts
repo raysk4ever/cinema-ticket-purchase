@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import Cinema from '../models/cinema';
 import Seat from '../models/seat';
+import redisClient from '../redis';
 
 const router = express.Router();
 
@@ -45,5 +46,49 @@ router.post('/cinemas/:cinemaId/purchase-consecutive', async (req: Request, res:
     res.status(500).json({ error: 'Failed to purchase consecutive seats' });
   }
 });
+
+
+
+// Purchase a specific seat number in cinema C.
+// If the seat is already purchased, return an error, otherwise return the seat.
+router.post('/cinemas/:cinemaId/purchase/:seatNumber', async (req: Request, res: Response) => {
+  try {
+    const { cinemaId, seatNumber } = req.params;
+    const lockKey = `lock:${cinemaId}:${seatNumber}`;
+
+    // Acquire distributed lock
+    const lock = await redisClient.get(lockKey)
+
+    if (lock) {
+      // Lock is already acquired by another process
+      return res.status(409).json({ error: 'Seat is being purchased by another user' });
+    }
+
+    // Set distributed lock
+    await redisClient.set(lockKey, 'locked', { EX: 5 }); // Set expiry time to release the lock after 5 seconds
+
+    // Find the seat and update with OCC
+    const seat = await Seat.findOneAndUpdate(
+      { cinema: cinemaId, seatNumber: Number(seatNumber), isPurchased: false },
+      { isPurchased: true, $inc: { version: 1 } }, // Increment the version field
+      { new: true },
+    );
+
+    if (!seat) {
+      // Release the lock
+      await redisClient.del(lockKey);
+      return res.status(404).json({ error: 'Seat not available for purchase' });
+    }
+
+    // Release the lock
+    await redisClient.del(lockKey);
+    return res.json(seat);
+    
+  } catch (error) {
+    console.error('error: ', error);
+    return res.status(500).json({ error: 'Failed to purchase seat' });
+  }
+});
+
 
 export default router;
