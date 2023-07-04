@@ -1,4 +1,5 @@
 import express from 'express';
+import cinemaRoutes from './routes/cinema';
 import { connectToDatabase } from './db';
 
 const app = express();
@@ -7,6 +8,7 @@ const app = express();
 app.use(express.json());
 
 // Routes
+app.use('/api', cinemaRoutes);
 app.route('*').all((_, res) => {
   return res.send('Welcome to Cinema API')
 })
