@@ -8,6 +8,11 @@ This is a web API built with Node.js and TypeScript that provides functionalitie
 - `POST /cinemas/:cinemaId/purchase/:seatNumber` - Purchase a specific seat number in cinema C.
 - `POST /cinemas/:cinemaId/purchase-consecutive` - Purchase the first two free consecutive seats in cinema C.
 
+## Prerequisite
+
+- Mongodb
+- Redis
+
 ## Installation
 
 1. Clone the repository:
